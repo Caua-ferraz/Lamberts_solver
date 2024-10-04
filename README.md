@@ -31,7 +31,7 @@ Welcome to the **Lambert Solver** project! This Python script provides a collect
 1. **Clone or Download the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/the_small_guy_property.git
+   git clone https://github.com/Caua-ferraz/the_small_guy_property.git
    ```
 
 2. **Navigate to the Project Directory**
@@ -46,7 +46,6 @@ Welcome to the **Lambert Solver** project! This Python script provides a collect
    python main.py
    ```
 
-   Replace `main.py` with the actual name of the Python script.
 
 ### Usage
 
