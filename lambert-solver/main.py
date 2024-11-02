@@ -1,8 +1,8 @@
 import math
 
 # Vector operations
-def vector_add(a, b):
-    return [a[i] + b[i] for i in range(3)]
+def vector_add(*vectors):
+    return [sum(components) for components in zip(*vectors)]
 
 def vector_subtract(a, b):
     return [a[i] - b[i] for i in range(3)]
@@ -56,12 +56,26 @@ class LambertSolver:
         # Compute the angle between r1 and r2
         cos_dnu = vector_dot(r1, r2) / (r1_norm * r2_norm)
         cos_dnu = max(min(cos_dnu, 1.0), -1.0)  # Clamp to [-1, 1]
+        
+        # Handle collinear cases only once to avoid infinite adjustments
+        collinear_adjusted = False
+        if abs(cos_dnu) > 1.0 - tolerance:
+            if cos_dnu > 0:  # Same direction
+                r2_offset = [r2[0], r2[1] + tolerance * r2_norm, r2[2]]
+            else:  # Opposite direction
+                r2_offset = [r2[0], r2[1] + tolerance * r2_norm, r2[2]]
+            r2 = r2_offset
+            r2_norm = vector_norm(r2)
+            cos_dnu = vector_dot(r1, r2) / (r1_norm * r2_norm)
+            cos_dnu = max(min(cos_dnu, 1.0), -1.0)
+            collinear_adjusted = True
+
+            # Check if adjustment resolved the collinearity
+            if abs(cos_dnu) > 1.0 - tolerance:
+                raise ValueError("Angle between position vectors is too close to 0 or pi even after adjustment.")
+
         sin_dnu = math.sqrt(1.0 - cos_dnu**2)
         dnu = math.acos(cos_dnu)
-
-        # Check for zero angle to prevent division by zero
-        if abs(sin_dnu) < tolerance:
-            raise ValueError("Angle between position vectors is zero or very small; cannot compute transfer orbit.")
 
         # Determine the direction of motion using the cross product
         cross_r1_r2 = vector_cross(r1, r2)
@@ -69,9 +83,12 @@ class LambertSolver:
             sin_dnu = -sin_dnu
             dnu = 2 * math.pi - dnu
 
-        # Compute A
-        A = sin_dnu * math.sqrt(r1_norm * r2_norm / (1.0 - cos_dnu))
-        
+        # Compute A with protection against small angles
+        if abs(sin_dnu) < tolerance:
+            A = math.sqrt(r1_norm * r2_norm) * (1.0 - cos_dnu)  # Alternative formulation for small angles
+        else:
+            A = sin_dnu * math.sqrt(r1_norm * r2_norm / (1.0 - cos_dnu))
+
         if A == 0:
             raise ValueError("Angle between position vectors is zero; cannot compute transfer orbit.")
 
@@ -190,9 +207,6 @@ def orbital_energy(r, v, mu):
     r_norm = vector_norm(r)
     v_norm = vector_norm(v)
     return v_norm**2 / 2 - mu / r_norm
-
-def vector_add(*vectors):
-    return [sum(components) for components in zip(*vectors)]
 
 def propagate_orbit(r0, v0, dt, mu, num_steps=1000):
     """
